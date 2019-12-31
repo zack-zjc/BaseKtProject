@@ -1,0 +1,139 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'kotlin-android-extensions'
+
+Properties properties = new Properties()
+properties.load(file('../build.properties').newDataInputStream())
+//是否release版本
+def proguard = properties.getProperty("minifyEnable").toBoolean()
+//获取版本号
+def verCode = properties.getProperty("verCode").toInteger()
+//版本名称
+def verName = properties.getProperty("verName")
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.android.mvvm"
+        minSdkVersion 21
+        targetSdkVersion 28
+        versionCode verCode
+        versionName verName
+        multiDexEnabled true
+        resConfigs "zh"
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
+        renderscriptTargetApi 21
+        renderscriptSupportModeEnabled true
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs'] //添加so
+        }
+        debug.setRoot('buildtypes/debug')//指定debug模式的路径
+        release.setRoot('buildtypes/release')//指定release模式的路径
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file("cckeystore")
+            storePassword "realcloud2405!@#\$"
+            keyAlias "com.loocha.cc"
+            keyPassword "realcloud2405!@#\$"
+            v2SigningEnabled true
+        }
+        release {
+            storeFile file("cckeystore")
+            storePassword "realcloud2405!@#\$"
+            keyAlias "com.loocha.cc"
+            keyPassword "realcloud2405!@#\$"
+            v2SigningEnabled true
+        }
+    }
+
+    buildTypes {
+        debug {
+            // 显示Log
+            minifyEnabled proguard
+            zipAlignEnabled proguard
+            shrinkResources proguard
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // 不显示Log字节码优化
+            minifyEnabled proguard
+            zipAlignEnabled proguard
+            // 移除无用的resource文件
+            shrinkResources proguard
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    dexOptions {
+        jumboMode = true
+        preDexLibraries true
+        javaMaxHeapSize "2g"
+        dexInProcess = true
+        maxProcessCount 4
+    }
+
+    lintOptions { //lint设置
+        abortOnError false
+        warningsAsErrors false
+        checkReleaseBuilds false
+        xmlReport false
+        warningsAsErrors true
+        quiet false
+        showAll true
+        disable 'OldTargetApi', 'UnusedAttribute', 'LongLogTag'
+    }
+
+    aaptOptions { //关闭Android Studio的PNG合法性检查
+        cruncherEnabled = false
+        useNewCruncher = false
+    }
+
+    kapt {
+        generateStubs = true
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            if (outputFileName.endsWith('.apk')){
+                def fileName = "mvvm.apk"
+                if (outputFileName.endsWith('.apk')){
+                    if ("debug".equalsIgnoreCase(variant.buildType.name)){
+                        fileName = "mvvm-debug-${variant.versionName}.apk"
+                    }else{
+                        fileName = "mvvm-${variant.versionName}.apk"
+                    }
+                }
+                outputFileName = fileName
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.core:core-ktx:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    api project(':BaseKtModule')
+    api project(':BaseQrCodeModule')
+}
